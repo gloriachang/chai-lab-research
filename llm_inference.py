@@ -55,9 +55,14 @@ system_prompts = {
 
 # https://huggingface.co/datasets/google/civil_comments
 # ^^ use huggingface datasets library to load in: https://huggingface.co/docs/datasets/en/load_hub
-from datasets import load_dataset
-samples = load_dataset("google/civil_comments", split="test")
+from datasets import load_dataset, concatenate_datasets
+dataset = load_dataset("google/civil_comments", split="test")
 # something like dataset.head(50)
+
+non_toxic = dataset.filter(lambda x: x["toxicity"] < 0.5).select(range(40000))
+toxic = dataset.filter(lambda x: x["toxicity"] >= 0.5).select(range(40000))
+
+samples = concatenate_datasets([non_toxic, toxic]).shuffle(seed=42)
 
 instruction = "Is the following post toxic? Reply Yes or No, and nothing else:"
 
@@ -111,14 +116,14 @@ for emotion, system_prompt in system_prompts.items():
     #print("content:", content)
 
     predict_toxic = "yes" in content.lower()
-    # correct = predict_toxic == is_toxic
+    correct = predict_toxic == is_toxic
 
     results.append({
         "emotion": emotion,
     #    "sample": sample,
         "is_toxic": is_toxic,
         "predicted": predict_toxic,
-    #    "correct": correct,
+        "correct": correct,
     #    "llm_output": content
     })
 
